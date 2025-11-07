@@ -1,0 +1,15 @@
+# Inline remarks: centralize role defaults; safe values that require no new installs.
+
+# When false → Stage B performs server-side validation only (kubectl --dry-run=server)
+# When true  → Stage B actually applies manifests using kubectl or kubernetes.core.k8s (as discovered in Stage A)
+k3s_apply: false
+
+# Preferred delegate host that already has kubectl + cluster access (your k3s1 node)
+k3s_delegate_host: "k3s1"
+
+# Controller-side kubeconfig path (used only if controller ends up as executor)
+k3s_kubeconfig: "~/.kube/k3s1.config"
+
+# Delegate-side kubeconfig path (typical for k3s installs on the node)
+k3s_remote_kubeconfig: "/etc/rancher/k3s/k3s.yaml"
+

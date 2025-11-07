@@ -1,0 +1,33 @@
+- name: Compute runtime order (prefer inventory override if set)
+  vars:
+    _override_raw: "{{ router_scripts_order | default([]) }}"
+    # If override is a string (e.g., passed via -e '["a","b"]'), parse it with from_yaml; else use as-is
+    _override_list: >-
+      {{
+        (_override_raw if (_override_raw is sequence)
+         else (_override_raw | from_yaml))
+      }}
+  ansible.builtin.set_fact:
+    _router_order: >-
+      {{
+        (_override_list | length > 0)
+        | ternary(
+            _override_list,
+            lookup('ansible.builtin.pipe', "ls -1 " ~ router_scripts_dir ~ " | sort -V").splitlines()
+          )
+      }}
+
+- name: Show planned execution order
+  ansible.builtin.debug:
+    var: _router_order
+
+- name: Execute scripts in order (source /etc/stockops/vars.env)
+  become: true
+  ansible.builtin.shell: |
+    set -euo pipefail
+    [ -f /etc/stockops/vars.env ] && . /etc/stockops/vars.env || true
+    exec bash "{{ router_scripts_dir }}/{{ item }}"
+  args:
+    executable: /bin/bash
+  loop: "{{ _router_order }}"
+  when: router_run_scripts | bool

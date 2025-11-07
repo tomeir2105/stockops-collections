@@ -1,0 +1,5 @@
+---
+# Inline remarks: default vars for stockops.core.jenkins
+jenkins_enabled: true              # Inline remarks: feature flag to gate the role
+jenkins_http_port: 8080            # Inline remarks: placeholder for future tasks
+jenkins_home: /var/jenkins_home    # Inline remarks: standard path used in your cluster

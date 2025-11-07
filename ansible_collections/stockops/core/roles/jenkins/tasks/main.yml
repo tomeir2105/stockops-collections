@@ -1,0 +1,17 @@
+---
+# Inline remarks: placeholder task for jenkins role (no changes on host)
+- name: Sanity ping from stockops.core.jenkins
+  ansible.builtin.debug:
+    msg: "stockops.core.jenkins role executed on {{ inventory_hostname }}"
+
+- name: Preview jenkins defaults (no-op)
+  ansible.builtin.debug:
+    msg: >-
+      {{
+        {
+          'jenkins_enabled': jenkins_enabled,
+          'jenkins_http_port': jenkins_http_port,
+          'jenkins_home': jenkins_home
+        } | to_nice_json
+      }}
+  when: jenkins_enabled | bool

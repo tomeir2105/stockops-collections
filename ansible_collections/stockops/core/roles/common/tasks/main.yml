@@ -1,0 +1,5 @@
+---
+# Inline remarks: sanity task so we see execution clearly
+- name: Sanity ping from stockops.core.common
+  ansible.builtin.debug:
+    msg: "stockops.core.common role executed on {{ inventory_hostname }}"

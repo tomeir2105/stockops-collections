@@ -1,0 +1,11 @@
+# /home/user/stockops-collections/play.yml
+# Minimal top-level playbook (not empty). Runs the k3s role; defaults to dry-run unless you pass -e k3s_apply=true.
+
+- name: "StockOps | Run k3s role (Stage A/B flow)"
+  hosts: k3s_controller
+  gather_facts: false
+
+  roles:
+    - role: stockops.core.k3s
+      tags: [k3s]
+

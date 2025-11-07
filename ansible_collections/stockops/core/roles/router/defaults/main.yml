@@ -1,0 +1,11 @@
+router_deploy_scripts: true
+
+# Whether to execute scripts during the play
+router_run_scripts: false
+
+# Directory on target where scripts will live
+router_scripts_dir: /opt/stockops-router/scripts
+
+# If empty, tasks will derive order from files present in {{ router_scripts_dir }} at runtime.
+# Otherwise, provide an explicit list (set by collection at build time below).
+router_scripts_order: []

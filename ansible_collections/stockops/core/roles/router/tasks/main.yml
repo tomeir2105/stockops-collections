@@ -1,0 +1,13 @@
+---
+- name: Router role loaded
+  ansible.builtin.debug:
+    msg: "router role ready (deploy={{ router_deploy_scripts }}, run={{ router_run_scripts | ternary('enabled','disabled') }})"
+
+- name: Deploy router assets (scripts+config)
+  ansible.builtin.include_tasks: deploy-scripts.yml
+  when: router_deploy_scripts | bool
+
+- name: Execute selected scripts
+  ansible.builtin.include_tasks: run-scripts.yml
+  when: router_run_scripts | bool
+- include_tasks: gen-vars-env.yml

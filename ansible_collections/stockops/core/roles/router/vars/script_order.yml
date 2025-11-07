@@ -1,0 +1,21 @@
+# Auto-generated at build time; edit inventory/group_vars to override
+router_scripts_order:
+  - add-keys.sh
+  - check-ap.sh
+  - check_influx_monitor.sh
+  - disable_rfkill.sh
+  - install.sh
+  - install-ansible.sh
+  - install-ansible-env-service.sh
+  - set-static-ip.sh
+  - show-clients.sh
+  - stage0_prep.sh
+  - stage1_wan.sh
+  - stage2_lan.sh
+  - stage3_ap.sh
+  - stage4_nat.sh
+  - stage5_health.sh
+  - stage5_verify.sh
+  - stage6_enable.sh
+  - stage6_finalize.sh
+  - utils.sh

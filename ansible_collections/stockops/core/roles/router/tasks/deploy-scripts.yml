@@ -1,0 +1,24 @@
+- name: Ensure router scripts directory exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ router_scripts_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Copy router scripts to target
+  become: true
+  ansible.builtin.copy:
+    src: "scripts/"
+    dest: "{{ router_scripts_dir }}/"
+    mode: '0755'
+    directory_mode: '0755'
+
+- name: Show scripts on target
+  check_mode: no
+  ansible.builtin.command: "bash -lc 'ls -1 {{ router_scripts_dir }} | sort -V'"
+  register: _scripts_ls
+  changed_when: false
+
+- name: Debug list (target)
+  ansible.builtin.debug:
+    var: _scripts_ls.stdout_lines

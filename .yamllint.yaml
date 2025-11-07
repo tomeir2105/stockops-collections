@@ -1,0 +1,14 @@
+extends: default
+rules:
+  line-length:
+    max: 140
+    level: warning
+  truthy:
+    level: warning
+ignore: |
+  build/
+  dist/
+  .git/
+  inventory/
+  inventory_example/
+  ansible_collections/stockops/core/roles/router/files/

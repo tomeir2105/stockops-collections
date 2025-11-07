@@ -1,0 +1,30 @@
+# Inline remarks: Galaxy metadata for the StockOps core collection
+namespace: stockops
+name: core
+version: 1.1.1
+readme: README.md
+authors:
+  - Meir
+description: >
+  Core roles and (future) plugins for the StockOps Raspberry Pi k3s cluster:
+  common setup, CI/CD helpers, and observability scaffolding.
+license: MIT
+tags:
+  - devops
+  - kubernetes
+  - k3s
+  - raspberrypi
+  - ansible
+dependencies: {}
+repository: https://github.com/tomeir2105/stockops-collections
+issues: https://github.com/tomeir2105/stockops-collections/issues
+build_ignore:
+  - inventory/
+  - secrets/
+  - vault.pass
+  - dist/
+  - build/
+  - .git/
+  - .gitignore
+  - Makefile
+  - README.md  # Inline remarks: exclude project root README from tarball if you prefer

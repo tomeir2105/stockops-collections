@@ -1,0 +1,21 @@
+# Inline remarks: ignore build artifacts, caches, and editor cruft
+__pycache__/
+*.pyc
+*.retry
+*.log
+*.swp
+*.swo
+.DS_Store
+
+# Ansible Galaxy collection build outputs
+build/
+dist/
+*.tar.gz
+
+# Local inventories, secrets (we'll manage samples separately)
+inventory/
+secrets/
+vault.pass
+
+# Ansible collection build artifacts
+*.tar.gz

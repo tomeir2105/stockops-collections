@@ -1,0 +1,28 @@
+---
+# Inline remarks: Router setup runs on the controller; facts help detect NIC names, OS, etc.
+- hosts: k3s_controller
+  become: true
+  gather_facts: true
+
+  # Inline remarks: Declaring the collection lets you refer to roles by short name if desired
+  collections:
+    - stockops.core
+
+  roles:
+    - role: stockops.core.router
+      tags: ["router"]                           # Inline remarks: lets you run with -t router
+      vars:
+        router_deploy_scripts: true              # Inline remarks: copy scripts/ to target host
+        router_deploy_config: true               # Inline remarks: push config/templates
+        router_run_scripts: true                 # Inline remarks: execute stages automatically
+        router_scripts_dir: /opt/stockops-router/scripts
+
+        # Inline remarks: explicit order keeps execution deterministic
+        router_scripts_order:
+          - stage0_prep.sh
+          - stage1_wan.sh
+          - stage2_lan.sh
+          - stage3_ap.sh
+          - stage4_nat.sh
+          - stage5_health.sh
+          - stage6_enable.sh

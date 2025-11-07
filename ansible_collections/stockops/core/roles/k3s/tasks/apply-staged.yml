@@ -1,0 +1,47 @@
+---
+# Find all candidate YAMLs under files/staged
+- name: Find staged k3s YAMLs
+  ansible.builtin.find:
+    paths: "{{ role_path }}/files/staged"
+    recurse: true
+    patterns: ["*.yml", "*.yaml"]
+  register: __k3s_candidates
+
+- name: Show staged files (candidates)
+  ansible.builtin.debug:
+    var: __k3s_candidates.files | map(attribute='path') | list
+
+# Build a filtered list of files that contain both apiVersion and kind
+- name: Filter to real Kubernetes manifests (apiVersion + kind)
+  ansible.builtin.command: >
+    bash -lc "grep -qE '^[[:space:]]*apiVersion:' {{ item | quote }}
+    && grep -qE '^[[:space:]]*kind:' {{ item | quote }} && echo {{ item | quote }} || true"
+  register: __grep_results
+  changed_when: false
+  failed_when: false
+  loop: "{{ __k3s_candidates.files | map(attribute='path') | list }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Compute final manifest list
+  ansible.builtin.set_fact:
+    __k3s_manifests: >-
+      {{ (__grep_results.results | map(attribute='stdout') | list | select('length') | list) | sort }}
+
+- name: Show manifests to be applied
+  ansible.builtin.debug:
+    var: __k3s_manifests
+
+# Apply each manifest when toggled on
+- name: Apply k3s manifests via kubernetes.core.k8s
+  when:
+    - k3s_apply | bool
+    - __k3s_manifests | length > 0
+  kubernetes.core.k8s:
+    kubeconfig: "{{ k3s_kubeconfig | default('~/.kube/k3s1.config') }}"
+    state: present
+    apply: true
+    src: "{{ item }}"
+  loop: "{{ __k3s_manifests }}"
+  loop_control:
+    label: "{{ item }}"

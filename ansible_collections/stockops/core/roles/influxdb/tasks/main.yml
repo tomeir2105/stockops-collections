@@ -1,0 +1,8 @@
+---
+- name: Sanity ping from role
+  ansible.builtin.debug:
+    msg: "Role loaded: {{ role_path | basename }} (TODO: implement tasks)"
+
+# TODO: Replace the import below with real idempotent tasks that render templates
+# and apply manifests (e.g., with kubernetes.core.k8s)
+# - include_tasks: imported.yml

@@ -1,0 +1,89 @@
+# /home/user/stockops-collections/ansible_collections/stockops/core/roles/k3s/tasks/20_apply_manifests.yml
+# Stage B — apply or validate manifests based on Stage A findings (no new installs).
+
+- name: Resolve kubeconfig path per chosen executor
+  ansible.builtin.set_fact:
+    k3s_exec_kubeconfig: >-
+      {{ (k3s_capabilities.controller.kubeconfig_path)
+         if k3s_apply_executor == 'controller'
+         else (k3s_capabilities.delegate.kubeconfig_path) }}
+
+- name: Collect staged manifest files (deterministic order)
+  ansible.builtin.set_fact:
+    k3s_manifest_files: >-
+      {{ query('fileglob', role_path ~ '/files/staged/*.yml') | sort }}
+
+- name: Guard — no manifests found
+  ansible.builtin.fail:
+    msg: "No manifests found under {{ role_path }}/files/staged"
+  when: (k3s_manifest_files | length) == 0
+
+# Dry-run (validation only) — always uses kubectl --dry-run=server
+- name: Dry-run validate manifests with kubectl (server-side)
+  vars:
+    _kubectl_cmd: >-
+      kubectl --kubeconfig {{ k3s_exec_kubeconfig | quote }}
+      apply --dry-run=server -f -
+  ansible.builtin.command:
+    cmd: "{{ _kubectl_cmd }}"
+    stdin: "{{ lookup('file', item) }}"
+  changed_when: false
+  register: _dryrun_results
+  loop: "{{ k3s_manifest_files }}"
+  loop_control:
+    label: "{{ item | basename }}"
+  when: not (k3s_apply | default(false) | bool)
+  delegate_to: "{{ k3s_capabilities.delegate.host if k3s_apply_executor == 'delegate' else inventory_hostname }}"
+
+- name: Show dry-run summary
+  ansible.builtin.debug:
+    msg:
+      - "Executor: {{ k3s_apply_executor }} (kubeconfig={{ k3s_exec_kubeconfig }})"
+      - "Validated (server dry-run) {{ k3s_manifest_files | length }} file(s)"
+  when: not (k3s_apply | default(false) | bool)
+
+# Real apply path A — controller has python kubernetes client: prefer kubernetes.core.k8s
+- name: Apply manifests using kubernetes.core.k8s on controller
+  kubernetes.core.k8s:
+    kubeconfig: "{{ k3s_exec_kubeconfig }}"
+    state: present
+    apply: true
+    src: "{{ item }}"
+    wait: true
+  loop: "{{ k3s_manifest_files }}"
+  loop_control:
+    label: "{{ item | basename }}"
+  when:
+    - (k3s_apply | default(false) | bool)
+    - k3s_apply_executor == 'controller'
+    - k3s_capabilities.controller.py_k8s | bool
+
+# Real apply path B — fallback to kubectl (controller or delegate) via stdin streaming
+- name: Apply manifests via kubectl (streamed stdin)
+  vars:
+    _kubectl_apply_cmd: >-
+      kubectl --kubeconfig {{ k3s_exec_kubeconfig | quote }}
+      apply -f -
+  ansible.builtin.command:
+    cmd: "{{ _kubectl_apply_cmd }}"
+    stdin: "{{ lookup('file', item) }}"
+  register: _apply_results
+  changed_when: >-
+    'configured' in (_apply_results.stdout | default('')) or
+    'created'    in (_apply_results.stdout | default('')) or
+    'patched'    in (_apply_results.stdout | default(''))
+  loop: "{{ k3s_manifest_files }}"
+  loop_control:
+    label: "{{ item | basename }}"
+  when:
+    - (k3s_apply | default(false) | bool)
+    - not (k3s_capabilities.controller.py_k8s | bool and k3s_apply_executor == 'controller')
+  delegate_to: "{{ k3s_capabilities.delegate.host if k3s_apply_executor == 'delegate' else inventory_hostname }}"
+
+- name: Apply summary
+  ansible.builtin.debug:
+    msg:
+      - "Executor: {{ k3s_apply_executor }} (kubeconfig={{ k3s_exec_kubeconfig }})"
+      - "Applied {{ k3s_manifest_files | length }} file(s) using {{ 'kubernetes.core.k8s' if (k3s_capabilities.controller.py_k8s and k3s_apply_executor == 'controller') else 'kubectl' }}"
+  when: (k3s_apply | default(false) | bool)
+

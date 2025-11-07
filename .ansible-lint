@@ -1,0 +1,13 @@
+profiles:
+  production: {}
+exclude_paths:
+  - build/
+  - dist/
+  - .git/
+  - inventory/
+  - inventory_example/
+  - ansible_collections/stockops/core/roles/router/files/  # external scripts/templates
+warn_list:
+  - var-naming[no-role-prefix]
+  - schema[galaxy]
+parseable: true

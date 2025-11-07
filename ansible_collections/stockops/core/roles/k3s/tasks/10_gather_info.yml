@@ -1,0 +1,70 @@
+- name: Resolve delegate host for k3s operations
+  ansible.builtin.set_fact:
+    k3s_delegate_host_resolved: "{{ k3s_delegate_host | default('k3s1') }}"
+
+- name: Check controller: kubectl presence
+  ansible.builtin.shell: "command -v kubectl"
+  args: { executable: /bin/bash }
+  register: _ctl_kubectl
+  changed_when: false
+  failed_when: false
+
+- name: Check controller: python kubernetes client import
+  ansible.builtin.shell: "python3 -c 'import kubernetes; print(\"ok\")'"
+  register: _ctl_py_k8s
+  changed_when: false
+  failed_when: false
+
+- name: Check controller: kubeconfig file exists
+  ansible.builtin.stat:
+    path: "{{ k3s_kubeconfig | default('~/.kube/k3s1.config') }}"
+  register: _ctl_kubeconfig
+
+- name: Check delegate: kubectl presence
+  ansible.builtin.shell: "command -v kubectl"
+  args: { executable: /bin/bash }
+  register: _dlg_kubectl
+  changed_when: false
+  failed_when: false
+  delegate_to: "{{ k3s_delegate_host_resolved }}"
+
+- name: Check delegate: kubeconfig exists (typical k3s path)
+  ansible.builtin.stat:
+    path: "{{ k3s_remote_kubeconfig | default('/etc/rancher/k3s/k3s.yaml') }}"
+  register: _dlg_kubeconfig
+  delegate_to: "{{ k3s_delegate_host_resolved }}"
+
+- name: Compute capability matrix
+  ansible.builtin.set_fact:
+    k3s_capabilities:
+      controller:
+        kubectl: "{{ _ctl_kubectl.rc == 0 }}"
+        py_k8s: "{{ _ctl_py_k8s.rc == 0 }}"
+        kubeconfig_path: "{{ k3s_kubeconfig | default('~/.kube/k3s1.config') }}"
+        kubeconfig_exists: "{{ _ctl_kubeconfig.stat.exists | default(false) }}"
+      delegate:
+        host: "{{ k3s_delegate_host_resolved }}"
+        kubectl: "{{ _dlg_kubectl.rc == 0 }}"
+        kubeconfig_path: "{{ k3s_remote_kubeconfig | default('/etc/rancher/k3s/k3s.yaml') }}"
+        kubeconfig_exists: "{{ _dlg_kubeconfig.stat.exists | default(false) }}"
+
+- name: Decide executor (prefer controller if capable, else delegate with kubectl)
+  ansible.builtin.set_fact:
+    k3s_apply_executor: >-
+      {% set ctl_module = (k3s_capabilities.controller.py_k8s and k3s_capabilities.controller.kubeconfig_exists) %}
+      {% set ctl_kubectl = (k3s_capabilities.controller.kubectl and k3s_capabilities.controller.kubeconfig_exists) %}
+      {% set dlg_kubectl = (k3s_capabilities.delegate.kubectl and k3s_capabilities.delegate.kubeconfig_exists) %}
+      {{ 'controller' if (ctl_module or ctl_kubectl) else ('delegate' if dlg_kubectl else 'none') }}
+
+- name: Summarize Stage A findings
+  ansible.builtin.debug:
+    msg:
+      - "Controller: kubectl={{ k3s_capabilities.controller.kubectl }}, py_k8s={{ k3s_capabilities.controller.py_k8s }}, kubeconfig_exists={{ k3s_capabilities.controller.kubeconfig_exists }} ({{ k3s_capabilities.controller.kubeconfig_path }})"
+      - "Delegate {{ k3s_capabilities.delegate.host }}: kubectl={{ k3s_capabilities.delegate.kubectl }}, kubeconfig_exists={{ k3s_capabilities.delegate.kubeconfig_exists }} ({{ k3s_capabilities.delegate.kubeconfig_path }})"
+      - "Chosen executor: {{ k3s_apply_executor }}"
+
+- name: Fail early if no suitable executor found
+  ansible.builtin.fail:
+    msg: "No valid executor found: need controller (kubernetes client or kubectl+kubeconfig) or delegate with kubectl+kubeconfig."
+  when: k3s_apply_executor == 'none'
+

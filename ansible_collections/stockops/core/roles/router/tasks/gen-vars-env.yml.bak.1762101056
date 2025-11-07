@@ -1,0 +1,17 @@
+- name: Ensure stockops env directory exists
+  become: true
+  ansible.builtin.file:
+    path: /etc/stockops
+    state: directory
+    mode: '0755'
+
+- name: Render vars to /etc/stockops/vars.env
+  become: true
+  ansible.builtin.template:
+    src: vars.env.j2
+    dest: /etc/stockops/vars.env
+    mode: '0640'
+
+- name: Hint: source /etc/stockops/vars.env in scripts
+  ansible.builtin.debug:
+    msg: "Shell scripts can source /etc/stockops/vars.env to access STOCKOPS_* variables"

@@ -1,0 +1,15 @@
+# play.yml
+---
+# Inline remarks: Tag each import with both its own tag and "full" so -t full runs everything in order.
+
+- import_playbook: play_router.yml
+  tags: ["router", "full"]     # Inline remarks: router stage (controller)
+
+- import_playbook: play_k3s.yml
+  tags: ["k3s", "full"]        # Inline remarks: k3s bootstrap/join (nodes)
+
+- import_playbook: play_core.yml
+  tags: ["grafana", "influxdb", "jenkins", "core", "full"]  # Inline remarks: core services
+
+- import_playbook: play_apps.yml
+  tags: ["apps", "full"]       # Inline remarks: applications (news, stocks, etc.)
