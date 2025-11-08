@@ -1,4 +1,4 @@
-# Migration TODO (auto-generated)
+# Migration TODO
 
 ## k3s
   - ./k3s-03-agents-install.yml

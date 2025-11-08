@@ -1,0 +1,2 @@
+[MOVED] Pipeline migrated
+This pipeline was moved to `ci/jenkins/pipelines/monitor-pods/Jenkinsfile` in this repository. Please create a Jenkins job (multibranch or pipeline) and point it to that Jenkinsfile path, or install it using your preferred Job DSL/seed job.

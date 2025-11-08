@@ -128,6 +128,21 @@ graph TB
 | News Fetcher | Data Collection | Financial news aggregation | ✅ |
 | Stock Fetcher | Data Collection | Market data collection | ✅ |
 
+## CI Pipelines
+
+Pipeline definitions are now stored under `ci/jenkins/pipelines/` (one folder per pipeline). I moved the two pipeline files you added into:
+
+- `ci/jenkins/pipelines/netdata-fetcher/Jenkinsfile`
+- `ci/jenkins/pipelines/monitor-pods/Jenkinsfile`
+
+To install a pipeline manually in Jenkins:
+
+1. Multibranch pipeline: create a Multibranch Pipeline job that points to this repository (or the subfolder) — the job will pick up `Jenkinsfile` files in the pipeline folders.
+2. Seed/Job DSL: create a seed job that runs the Job DSL scripts and creates jobs pointing to the Jenkinsfile paths.
+3. Pipeline job: create a pipeline job and set the Pipeline script from SCM to the repo path `ci/jenkins/pipelines/<pipeline-name>/Jenkinsfile`.
+
+> Security: do not commit secrets. Use Jenkins credentials and reference them by ID in the Jenkinsfiles (the pipelines call `influxdb_token` credential). For automated installation, prefer Job DSL or a seed job that references credentials by ID.
+
 ---
 
 ## Collection Overview
@@ -190,16 +205,76 @@ ansible-playbook -i inventory.ini play.yml -t full -e k3s_apply=true
 | InfluxDB | http://192.168.50.101:30886      | admin/ChangeMe123! |
 | Jenkins  | http://192.168.50.101:30080      | admin/admin      |
 
+> **Important**: After initial setup, you must configure API tokens in your `vars.yml`:
+>
+> **1. Grafana Token**:
+> 1. Log into Grafana using the default credentials
+> 2. Go to Configuration → API Keys
+> 3. Create a new API key with Admin role
+> 4. Copy the generated token
+> 5. Update `GRAFANA_TOKEN: "<ADD_YOUR_TOKEN>"` in your `vars.yml`
+>
+> **2. InfluxDB Token**:
+> 1. Log into InfluxDB using the default credentials
+> 2. Go to Data → API Tokens
+> 3. Generate a new admin API token
+> 4. Copy the generated token
+> 5. Update `INFLUXDB_ADMIN_TOKEN: "<ADD_YOUR_TOKEN>"` in your `vars.yml`
+>
+> These tokens are required for automated dashboard provisioning, datasource configuration, and data collection.
+
 For detailed configuration options, see our [Configuration Guide](docs/configuration.md).
 For troubleshooting help, see our [Troubleshooting Guide](docs/troubleshooting.md).
 
+### Available Tags
+
+The playbooks use tags to control which parts of the infrastructure are deployed. Here's a comprehensive list of available tags:
+
+#### Main Deployment Tags
+- `full`: Deploy the complete stack (equivalent to running all stages)
+- `router`: Configure the Raspberry Pi router node (WiFi AP, networking)
+- `k3s`: Set up the K3s Kubernetes cluster
+- `core`: Deploy all core services (Grafana, InfluxDB, Jenkins)
+- `apps`: Deploy all StockOps applications (news and stock fetchers)
+
+#### Core Service Tags
+- `grafana`: Deploy only Grafana dashboard service
+- `influxdb`: Deploy only InfluxDB time-series database
+- `jenkins`: Deploy only Jenkins CI/CD service
+
+#### Application Tags
+- `apps_stocks`: Deploy only the stock data fetcher
+- `apps_news`: Deploy only the news fetcher
+
+#### Preparation Tags
+- `prepare`: Run pre-deployment tasks (cgroups, system configs)
+- `nfs`: Configure NFS storage setup
+- `storage`: Set up persistent volumes and claims
+
+#### Example Usage:
+
 ```bash
+# Full deployment
+ansible-playbook -i inventory.ini play.yml -t full
+
+# Network and cluster setup
 ansible-playbook -i inventory.ini play.yml -t router
 ansible-playbook -i inventory.ini play.yml -t k3s -e k3s_apply=true
+
+# Core services deployment
+ansible-playbook -i inventory.ini play.yml -t core
+# Or deploy services individually
 ansible-playbook -i inventory.ini play.yml -t grafana
 ansible-playbook -i inventory.ini play.yml -t influxdb,jenkins
+
+# Applications deployment
 ansible-playbook -i inventory.ini play.yml -t apps
+# Or deploy apps individually
+ansible-playbook -i inventory.ini play.yml -t apps_stocks
+ansible-playbook -i inventory.ini play.yml -t apps_news
 ```
+
+You can combine tags with commas to run multiple stages: `-t grafana,influxdb`
 
 ---
 
